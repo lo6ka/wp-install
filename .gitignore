@@ -1,0 +1,14 @@
+# PHPStorm
+.idea
+
+# Dependency directory
+node_modules
+
+# SASS cache
+.tmp
+
+# DB
+data
+
+# Other
+*.log

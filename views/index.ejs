@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Wp-install</title>
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" integrity="sha512-dTfge/zgoMYpP7QbHy4gWMEGsbsdZeCXz7irItjcC3sPUFtf0kuFbDz/ixG7ArTxmDjLXDmezHubeNikyKGVyQ==" crossorigin="anonymous">
+
+    <!-- Optional theme -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap-theme.min.css" integrity="sha384-aUGj/X2zp5rLCbBxumKTCw2Z50WgIr1vs/PFN4praOTvYXWlVyh2UtNUU0KAUhAX" crossorigin="anonymous">
+    <link rel='stylesheet' href='/stylesheets/style.css' />
+  </head>
+  <body>
+    <div class="container">
+      <h1>Wordpress installation</h1>
+      <form action="/" method="post">
+
+        <div class="type">
+
+          <ul class="nav nav-tabs" role="tablist">
+            <li><a href="#server-exists" aria-controls="home" role="tab" data-toggle="tab">Already have a prepared server</a></li>
+            <li class="active"><a href="#create-server" aria-controls="profile" role="tab" data-toggle="tab">Create server on Vultr.com</a></li>
+          </ul>
+
+          <div class="tab-content">
+            <div role="tabpanel" class="tab-pane" id="server-exists">1...</div>
+            <div role="tabpanel" class="tab-pane active" id="create-server">
+              <h3>Vultr account</h3>
+
+              <label for="username">Username</label>
+              <input id="username" name="username" type="text" class="form-control">
+
+              <label for="password">Password</label>
+              <input id="password" name="password" type="password" autocomplete="off" class="form-control">
+
+              <label for="apiKey">API Key</label>
+              <input id="apiKey" name="apiKey" type="text" class="form-control" required>
+
+              <h3>Server settings</h3>
+
+              <label for="serverUser">Server user</label>
+              <input id="serverUser" name="serverUser" type="text" class="form-control">
+
+              <label for="serverPassword">Server password</label>
+              <input id="serverPassword" name="serverPassword" type="text" class="form-control">
+
+              <label for="url">Install Location</label>
+              <input id="url" name="url" type="text" class="form-control">
+            </div>
+          </div>
+
+        </div>
+
+        <h3>Site settings</h3>
+
+        <label for="adminUsername">Administrator Username</label>
+        <input id="adminUsername" name="adminUsername" type="text" class="form-control" value="admin" required>
+
+        <label for="adminPassword">Administrator Password</label>
+        <input id="adminPassword" name="adminPassword" type="password" autocomplete="off" class="form-control" required>
+
+        <label for="adminEmail">Administrator Email</label>
+        <input id="adminEmail" name="adminEmail" type="email" autocomplete="on" class="form-control" required>
+
+        <label for="title">Website Title</label>
+        <input id="title" name="title" type="text" class="form-control" value="Blog" required>
+
+        <label for="description">Website Description</label>
+        <input id="description" name="description" type="text" class="form-control" value="Just another wp site" required>
+
+        <br>
+        <input class="btn btn-primary" type="submit" value="Install">
+
+        <!-- Hidden fields -->
+        <input type="text" hidden name="DCID" value="24">
+        <input type="text" hidden name="OSID" value="127">
+        <input type="text" hidden name="VPSPLANID" value="29">
+      </form>
+      <br>
+      <% if(servers[0]) { %>
+      <table id="servers" class="table">
+        <tr>
+          <th>Server IP</th>
+          <th>Server Ready</th>
+          <th>Server Status</th>
+        </tr>
+        <% servers.forEach(function(server, index, array){ %>
+        <tr data-server="<%= server._id %>">
+          <td><a href="http://<%= server.ip %>"><%= server.ip %></a></td>
+          <td><%= server.ready %></td>
+          <td><%= server.status %></td>
+        </tr>
+        <% }); %>
+      </table>
+      <% } else { %>
+      <p>There are no servers</p>
+      <% } %>
+    </div>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+    <script src="javascript/main.js"></script>
+    <!-- Latest compiled and minified JavaScript -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js" integrity="sha512-K1qjQ+NcF2TYO/eI3M6v8EiNYZfA95pQumfvcVrTHtwQVDG+aHRqLi/ETn2uB+1JqwYqVG3LIvdm9lj6imS/pQ==" crossorigin="anonymous"></script>
+  </body>
+</html>
