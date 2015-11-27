@@ -11,69 +11,133 @@
   </head>
   <body>
     <div class="container">
-      <h1>Wordpress installation</h1>
-      <form action="/" method="post">
+      <h1 class="text-center">Wordpress installation</h1>
 
-        <div class="type">
 
-          <ul class="nav nav-tabs" role="tablist">
-            <li><a href="#server-exists" aria-controls="home" role="tab" data-toggle="tab">Already have a prepared server</a></li>
-            <li class="active"><a href="#create-server" aria-controls="profile" role="tab" data-toggle="tab">Create server on Vultr.com</a></li>
-          </ul>
+      <h3>CentOS server on Vultr.com</h3>
 
-          <div class="tab-content">
-            <div role="tabpanel" class="tab-pane" id="server-exists">1...</div>
-            <div role="tabpanel" class="tab-pane active" id="create-server">
-              <h3>Vultr account</h3>
+      <div class="type">
 
-              <label for="username">Username</label>
-              <input id="username" name="username" type="text" class="form-control">
+        <ul class="nav nav-tabs" role="tablist">
+          <li class="active"><a href="#create-server" aria-controls="profile" role="tab" data-toggle="tab">Create server on Vultr.com</a></li>
+          <li><a href="#server-exists" aria-controls="home" role="tab" data-toggle="tab">Already have a server</a></li>
+        </ul>
 
-              <label for="password">Password</label>
-              <input id="password" name="password" type="password" autocomplete="off" class="form-control">
+        <div class="tab-content">
+
+          <div role="tabpanel" class="tab-pane active" id="create-server">
+            <form id="createServer" action="/server/create" method="post">
+              <h4>This will create a server with CentOS and preinstalled software.</h4>
 
               <label for="apiKey">API Key</label>
               <input id="apiKey" name="apiKey" type="text" class="form-control" required>
 
-              <h3>Server settings</h3>
+              <!-- Hidden fields -->
+              <input type="text" hidden name="DCID" value="24">
+              <input type="text" hidden name="OSID" value="127">
+              <input type="text" hidden name="VPSPLANID" value="29">
+              <br>
+              <input class="btn btn-primary" type="submit" value="Create">
+            </form>
+          </div>
 
-              <label for="serverUser">Server user</label>
-              <input id="serverUser" name="serverUser" type="text" class="form-control">
+          <div role="tabpanel" class="tab-pane" id="server-exists">
+            <form id="addServer" action="/server/add" method="post">
+              <h4>You need to provide some details about your server.</h4>
 
-              <label for="serverPassword">Server password</label>
-              <input id="serverPassword" name="serverPassword" type="text" class="form-control">
+              <label for="serverRootName">Server Root user name (default "root")</label>
+              <input id="serverRootName" name="serverRootName" type="text" class="form-control">
 
-              <label for="url">Install Location</label>
-              <input id="url" name="url" type="text" class="form-control">
-            </div>
+              <label for="serverRootPassword">Server Root user password</label>
+              <input id="serverRootPassword" name="serverRootPassword" type="text" class="form-control" required>
+
+              <label for="serverIP">Server IP address</label>
+              <input id="serverIP" name="serverIP" type="text" class="form-control" required>
+              <br>
+              <input class="btn btn-primary" type="submit" value="Save">
+            </form>
           </div>
 
         </div>
 
-        <h3>Site settings</h3>
+      </div>
 
-        <label for="adminUsername">Administrator Username</label>
-        <input id="adminUsername" name="adminUsername" type="text" class="form-control" value="admin" required>
+      <form id="createVirtualminDomain" action="/server/createDomain" method="post">
+        <h3>Create domain on a server</h3>
 
-        <label for="adminPassword">Administrator Password</label>
-        <input id="adminPassword" name="adminPassword" type="password" autocomplete="off" class="form-control" required>
+        <label for="server">Select server</label>
+        <% if(servers[0]) { %>
+        <select class="form-control" name="server" id="server">
 
-        <label for="adminEmail">Administrator Email</label>
-        <input id="adminEmail" name="adminEmail" type="email" autocomplete="on" class="form-control" required>
+          <% servers.forEach(function(server, index, array){
+              if(server.isSoftwareInstalled) {
+                %>
+              <option value="<%= server.id %>"><%= server.ip %></option>
 
-        <label for="title">Website Title</label>
-        <input id="title" name="title" type="text" class="form-control" value="Blog" required>
+          <%
+              }
 
-        <label for="description">Website Description</label>
-        <input id="description" name="description" type="text" class="form-control" value="Just another wp site" required>
+              }); %>
+
+        </select>
+          <% } else { %>
+          <p>There are no ready servers</p>
+
+        <% } %>
+
+        <label for="domainUser">Domain user name</label>
+        <input id="domainUser" name="domainUser" type="text" class="form-control">
+
+        <label for="domainPassword">Domain user password</label>
+        <input id="domainPassword" name="domainPassword" type="password" class="form-control">
+
+        <label for="domain">Domain</label>
+        <input id="domain" name="domain" type="text" class="form-control">
 
         <br>
-        <input class="btn btn-primary" type="submit" value="Install">
+        <input class="btn btn-primary" type="submit" value="Create">
+      </form>
 
-        <!-- Hidden fields -->
-        <input type="text" hidden name="DCID" value="24">
-        <input type="text" hidden name="OSID" value="127">
-        <input type="text" hidden name="VPSPLANID" value="29">
+      <form id="installWordpress" action="/server/installWordpress" method="post">
+        <h3>Install Wordpress</h3>
+
+        <label for="server">Select server</label>
+        <% if(servers[0]) { %>
+        <select class="form-control" name="server" id="server">
+
+          <% servers.forEach(function(server, index, array){
+          if(server.isSoftwareInstalled && server.isSoftwareInstalled) {
+          %>
+          <option value="<%= server.id %>"><%= server.ip %></option>
+
+          <%
+          }
+
+          }); %>
+
+        </select>
+        <% } else { %>
+        <p>There are no ready servers</p>
+
+        <% } %>
+
+        <label for="wpUser">Wordpress user name</label>
+        <input id="wpUser" name="wpUser" type="text" class="form-control">
+
+        <label for="wpPassword">Wordpress user password</label>
+        <input id="wpPassword" name="wpPassword" type="password" class="form-control">
+
+        <label for="wpEmail">Wordpress user email</label>
+        <input id="wpEmail" name="wpEmail" type="text" class="form-control">
+
+        <label for="wpTitle">Site title</label>
+        <input id="wpTitle" name="wpTitle" type="text" class="form-control">
+
+        <label for="wpDescription">Site description</label>
+        <input id="wpDescription" name="wpDescription" type="text" class="form-control">
+
+        <br>
+        <input class="btn btn-primary" type="submit" value="Create">
       </form>
       <br>
       <% if(servers[0]) { %>

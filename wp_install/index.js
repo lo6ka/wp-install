@@ -6,7 +6,19 @@ var Server = require('../models/server');
 
 module.exports = {
 
-    createWPServerOnVultr: function(req, res, next, options){
+    /*
+    * createServer() - creating server o vulrt.com
+    * prepareServer() - installing software via ssh
+    * addServer() - save server to DB
+    * createDomain() - create virtualmin domain
+    * installWordpress() - installing Wordpress using installatron plugin
+    * */
+
+    createServer: function(options, callback){
+
+        if(!options.apiKey || !options.DCID || !options.OSID || !options.VPSPLANID) {
+            return callback(new Error('Some parameters are missing!'));
+        }
 
         request({
             url: 'https://api.vultr.com/v1/server/create?api_key=' + options.apiKey,
@@ -16,37 +28,35 @@ module.exports = {
                 VPSPLANID: options.VPSPLANID
             },
             method: 'POST'
-        }, function(err, response, body){
+        }, function(err, response, body) {
 
             // check if req is done
-            if(!err && response.statusCode !== 200) {
-                return console.log(err);
+            if (!err && response.statusCode !== 200) {
+                console.log(err);
+                return callback(err);
             }
-
-            res.redirect('/');
 
             // create server db record
             var server = Server();
-            server.user = 'root';
-            server.ready = false;
-
             // get server id
             var serverId = JSON.parse(body).SUBID;
 
             server.vulrt_id = serverId;
+            server.save();
 
             // check when server is ready for ssh connection
-            var timer = setInterval(function(){
+            var timer = setInterval(function () {
 
                 // get server info
                 request({
                     url: 'https://api.vultr.com/v1/server/list?api_key=' + options.apiKey + '&SUBID=' + serverId,
                     method: 'GET'
-                }, function(err, response, body){
+                }, function (err, response, body) {
 
                     // check if req is done
-                    if(!err && response.statusCode !== 200) {
-                        return console.log(err);
+                    if (!err && response.statusCode !== 200) {
+                        console.log(err);
+                        return callback(err);
                     }
 
                     var obj = JSON.parse(body);
@@ -55,128 +65,243 @@ module.exports = {
                     server.save();
 
                     // check if server ready
-                    if(obj.power_status === 'running' && obj.server_state === 'ok' && obj.status === 'active' && obj.main_ip && obj.default_password){
+                    if (obj.power_status === 'running' && obj.server_state === 'ok' && obj.status === 'active' && obj.main_ip && obj.default_password) {
 
                         server.ip = obj.main_ip;
                         server.password = obj.default_password;
-                        server.status = 'Installing software';
+                        server.status = 'Created';
                         server.save();
-
-                        console.log('Trying to connect...');
 
                         // kill timer
                         clearInterval(timer);
+                        return callback(null, server);
+                    }
+                });
+            }, 5000);
+        });
+    },
 
-                        // ssh connection
-                        var conn = new Client();
-                        conn.on('ready', function() {
-                            console.log('Client :: ready');
+    addServer: function(options, callback){
 
-                            // transfer sh script to server root folder
-                            conn.sftp(function(err, sftp) {
-                                if (err) {
-                                    server.status = 'Error';
-                                    server.save();
-                                    return console.log(err);
-                                }
+        if(!options.serverRootPassword || !options.serverIP){
+            return callback(new Error('No root password or server IP provided!'));
+        }
 
-                                // creating file stream
-                                var readStream = fs.createReadStream( "./sh/baseserv.sh" );
-                                var writeStream = sftp.createWriteStream( "/root/baseserv.sh" );
+        var server = Server();
+        server.root = options.serverRootName || server.root;
+        server.password = options.serverRootPassword;
+        server.ip = options.serverIP;
+        server.save();
 
-                                writeStream.on('close', function () {
-                                    console.log( "File transferred" );
-                                    sftp.end();
+        return callback(null, server);
 
-                                    // execute file
-                                    conn.exec('cd /root && sh baseserv.sh', function(err, stream){
+    },
 
-                                        if (err) {
-                                            return console.log(err);
-                                        }
+    prepareServer: function(server, callback){
+        if(!server){
+            return callback(new Error('No server object! Cannot install software!'));
+        }
 
-                                        stream.on('close', function(code, signal) {
+        server.status = 'Installing software';
+        server.save();
 
-                                            console.log('Stream :: close :: code: ' + code + ', signal: ' + signal);
-                                            var command = 'virtualmin create-domain --domain "$(hostname -I)' +
-                                                '" --user "' + options.serverUser +
-                                                '" --pass "' + options.serverPassword +
-                                                '" --desc "' + options.description +
-                                                '" --unix --dir --webmin --web --mail --mysql --limits-from-plan' +
-                                                ' --mysql-pass "' + options.serverPassword + '" && ' +
-                                                'echo \'{"cmd":"install","application":"wordpress",' +
-                                                '"user":"' + options.serverUser + '",'+
-                                                '"email":"' + options.adminEmail + '",'+
-                                                '"login":"' + options.adminUsername + '",'+
-                                                '"sitetitle":"' + options.title + '",'+
-                                                '"sitetagline":"' + options.description + '",'+
-                                                '"passwd":"' + options.adminPassword + '"}\' | /usr/local/installatron/installatron';
+        var conn = new Client();
+        conn.on('ready', function() {
+            console.log('Client :: ready');
 
-                                            stream.end();
+            // transfer sh script to server root folder
+            conn.sftp(function(err, sftp) {
+                // creating file stream
+                var readStream = fs.createReadStream( "./sh/baseserv.sh" );
+                var writeStream = sftp.createWriteStream( "/root/baseserv.sh" );
 
-                                            conn.exec(command, function(err, stream){
+                writeStream.on('close', function () {
+                    console.log( "File transferred" );
+                    sftp.end();
 
-                                                if (err) {
-                                                    return console.log(err);
-                                                }
+                    // execute file
+                    conn.exec('cd /root && sh baseserv.sh', function(err, stream){
 
-                                                stream.on('close', function(code, signal){
+                        if (err) {
+                            return callback(err);
+                        }
 
-                                                    server.status = 'Ready';
-                                                    server.ready = true;
-                                                    server.save();
-                                                    stream.end();
+                        stream.on('close', function(code, signal) {
 
-                                                    return conn.end();
-                                                }).on('data', function(data) {
+                            console.log('Stream :: close :: code: ' + code + ', signal: ' + signal);
 
-                                                    console.log('STDOUT: ' + data);
-
-                                                }).stderr.on('data', function(data) {
-
-                                                    console.log('STDERR: ' + data);
-
-                                                });
-
-                                            });
-
-                                            //return res.send('Server is ready');
-
-                                        }).on('data', function(data) {
-
-                                            console.log('STDOUT: ' + data);
-
-                                        }).stderr.on('data', function(data) {
-
-                                            console.log('STDERR: ' + data);
-
-                                        });
-
-                                    });
-                                });
-                                // transfer file
-                                readStream.pipe( writeStream );
-                            });
-
-                        }).on('error', function(err) {
-                            console.log(err);
-                            server.status = 'Error';
+                            server.status = 'Software installed';
+                            server.isSoftwareInstalled = true;
                             server.save();
-                        }).connect({
-                            host: obj.main_ip,
-                            port: 22,
-                            username: 'root',
-                            password: obj.default_password,
-                            readyTimeout: 999999
+
+                            stream.end();
+                            conn.end();
+
+                            return callback(null, server);
+
+                        }).on('data', function(data) {
+
+                            console.log('STDOUT: ' + data);
+
+                        }).stderr.on('data', function(data) {
+
+                            console.log('STDERR: ' + data);
+
                         });
 
-                    }
+                    });
+                });
+                // transfer file
+                readStream.pipe( writeStream );
+            });
+
+        }).on('error', function(err) {
+            server.status = 'Error while sftp connection';
+            server.save();
+            console.log(err);
+            return callback(err);
+        }).connect({
+            host: server.ip,
+            port: 22,
+            username: server.root,
+            password: server.password,
+            readyTimeout: 999999
+        });
+    },
+
+    createDomain: function(options, server, callback){
+        if(!server || !options){
+            return callback(new Error('No server object! Cannot create domain!'));
+        }
+
+        server.status = 'Creating domain';
+        server.save();
+
+        // ssh connection
+        var conn = new Client();
+        conn.on('ready', function() {
+            console.log('Client :: ready');
+
+            var command = 'virtualmin create-domain' +
+                ' --domain "' + options.domain +
+                '" --user "' + options.domainUser +
+                '" --pass "' + options.domainPassword +
+                '" --unix --dir --webmin --web --mail --mysql --limits-from-plan' +
+                ' --mysql-pass "' + options.domainPassword + '"';
+
+            conn.exec(command, function(err, stream){
+
+                if (err) {
+                    return console.log(err);
+                }
+
+                stream.on('close', function(code, signal){
+
+                    server.status = 'Domain created';
+                    server.domainUser = options.domainUser;
+                    server.domainPassword = options.domainPassword;
+                    server.domain = options.domain;
+                    server.isDomainCreated = true;
+                    server.save();
+
+                    stream.end();
+                    conn.end();
+
+                    return callback(null, server);
+
+                }).on('data', function(data) {
+
+                    console.log('STDOUT: ' + data);
+
+                }).stderr.on('data', function(data) {
+
+                    console.log('STDERR: ' + data);
 
                 });
 
-            }, 2000);
+            });
 
+
+        }).on('error', function(err) {
+            server.status = 'Error while sftp connection';
+            server.save();
+            console.log(err);
+            return callback(err);
+        }).connect({
+            host: server.ip,
+            port: 22,
+            username: server.root,
+            password: server.password,
+            readyTimeout: 999999
         });
-        console.log('Error? :(');
+    },
+
+    installWordpress: function(options, server, callback){
+        if(!server || !options){
+            return callback(new Error('No server object! Cannot create domain!'));
+        }
+
+        server.status = 'Installing Wordpress';
+        server.save();
+
+        // ssh connection
+        var conn = new Client();
+        conn.on('ready', function() {
+            console.log('Client :: ready');
+
+            var command = 'echo \'{"cmd":"install","application":"wordpress",' +
+                '"user":"' + server.domainUser + '",'+
+                '"url":"' + server.domain + '",'+
+                '"email":"' + options.wpEmail + '",'+
+                '"login":"' + options.wpUser + '",'+
+                '"sitetitle":"' + options.wpTitle + '",'+
+                '"sitetagline":"' + options.wpDescription + '",'+
+                '"passwd":"' + options.wpPassword + '"}\' | /usr/local/installatron/installatron';
+
+            conn.exec(command, function(err, stream){
+
+                if (err) {
+                    return console.log(err);
+                }
+
+                stream.on('close', function(code, signal){
+
+                    server.status = 'Site ready!';
+                    server.wpUser = options.wpUser;
+                    server.wpPassword = options.wpPassword;
+                    server.wpEmail = options.wpEmail;
+                    server.isWordpressInstalled = true;
+                    server.save();
+
+                    stream.end();
+                    conn.end();
+
+                    return callback(null, server);
+
+                }).on('data', function(data) {
+
+                    console.log('STDOUT: ' + data);
+
+                }).stderr.on('data', function(data) {
+
+                    console.log('STDERR: ' + data);
+
+                });
+
+            });
+
+
+        }).on('error', function(err) {
+            server.status = 'Error while sftp connection';
+            server.save();
+            console.log(err);
+            return callback(err);
+        }).connect({
+            host: server.ip,
+            port: 22,
+            username: server.root,
+            password: server.password,
+            readyTimeout: 999999
+        });
     }
 };
