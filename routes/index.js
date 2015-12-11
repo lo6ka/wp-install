@@ -69,18 +69,18 @@ router.post('/server/add', function(req, res, next){
       console.log(err);
     }
 
-    wp_install.prepareServer(server, function(err, server){
+    /*wp_install.prepareServer(server, function(err, server){
       if(err && !server) {
         console.log(err);
       }
 
       console.log('Software installed!');
 
-    });
+    });*/
+
+    return res.redirect('/');
 
   });
-
-  return res.redirect('/');
 
 });
 

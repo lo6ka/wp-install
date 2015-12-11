@@ -1,12 +1,5 @@
 #!/bin/sh
 
-# vars
-site_domain="$(hostname -I)"
-site_desc="Simple site"
-site_user="admin"
-site_password="123456"
-mysql_pass="123456"
-
 iptables -F
 iptables -A INPUT -i lo -j ACCEPT
 iptables -A INPUT -p tcp -m tcp --dport 22 -j ACCEPT

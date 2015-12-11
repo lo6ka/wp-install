@@ -44,6 +44,12 @@
           <div role="tabpanel" class="tab-pane" id="server-exists">
             <form id="addServer" action="/server/add" method="post">
               <h4>You need to provide some details about your server.</h4>
+              <h6><i>WP-CLI need to be installed</i></h6>
+
+              <label for="serverType">Virtualmin or Cpanel?</label>
+              <br>
+              <input type="radio" name="serverType" id="serverType" value="virtualmin">virtualmin <br>
+              <input type="radio" name="serverType" id="serverType" value="cpanel">cpanel <br>
 
               <label for="serverRootName">Server Root user name (default "root")</label>
               <input id="serverRootName" name="serverRootName" type="text" class="form-control">
@@ -135,6 +141,17 @@
 
         <label for="wpDescription">Site description</label>
         <input id="wpDescription" name="wpDescription" type="text" class="form-control">
+
+        <h3>Database info, if using CPanel</h3>
+
+        <label for="dbName">Database name</label>
+        <input id="dbName" name="dbName" type="text" class="form-control">
+
+        <label for="dbUser">Database user name</label>
+        <input id="dbUser" name="dbUser" type="text" class="form-control">
+
+        <label for="dbPassword">Database user password</label>
+        <input id="dbPassword" name="dbPassword" type="text" class="form-control">
 
         <br>
         <input class="btn btn-primary" type="submit" value="Create">

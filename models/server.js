@@ -11,6 +11,23 @@ var Server = mongoose.Schema({
     },
     password: String,
 
+    cpanel: {
+        type: Boolean,
+        default: false
+    },
+
+    dbName: {
+        type: String
+    },
+
+    dbUser: {
+        type: String
+    },
+
+    dbPassword: {
+        type: String
+    },
+
     domainUser: {
         type: String
     },

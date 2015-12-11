@@ -91,6 +91,14 @@ module.exports = {
         server.root = options.serverRootName || server.root;
         server.password = options.serverRootPassword;
         server.ip = options.serverIP;
+
+        if(options.serverType === "cpanel") {
+            server.cpanel = true;
+        }
+
+        server.status = 'Software installed';
+        server.isSoftwareInstalled = true;
+
         server.save();
 
         return callback(null, server);
@@ -181,13 +189,23 @@ module.exports = {
         var conn = new Client();
         conn.on('ready', function() {
             console.log('Client :: ready');
+            var command;
 
-            var command = 'virtualmin create-domain' +
-                ' --domain "' + options.domain +
-                '" --user "' + options.domainUser +
-                '" --pass "' + options.domainPassword +
-                '" --unix --dir --webmin --web --mail --mysql --limits-from-plan' +
-                ' --mysql-pass "' + options.domainPassword + '"';
+            if(server.cpanel) {
+
+                command = '/scripts/wwwacct ' +
+                    '"'+ options.domain + '" ' +
+                    '"' + options.domainUser + '" ' +
+                    '"' + options.domainPassword + '" 0 x3 n n n  0 0 0 0 0 0';
+
+            } else {
+                command = 'virtualmin create-domain' +
+                    ' --domain "' + options.domain +
+                    '" --user "' + options.domainUser +
+                    '" --pass "' + options.domainPassword +
+                    '" --unix --dir --webmin --web --mail --mysql --limits-from-plan' +
+                    ' --mysql-pass "' + options.domainPassword + '"';
+            }
 
             conn.exec(command, function(err, stream){
 
@@ -196,12 +214,15 @@ module.exports = {
                 }
 
                 stream.on('close', function(code, signal){
-
-                    server.status = 'Domain created';
+                    console.log(code);
+                    if (code > 0) {
+                        server.status = 'Error in domain creation';
+                    } else {
+                        server.status = 'Domain created';
+                    }
+                    server.domain = options.domain;
                     server.domainUser = options.domainUser;
                     server.domainPassword = options.domainPassword;
-                    server.domain = options.domain;
-                    server.isDomainCreated = true;
                     server.save();
 
                     stream.end();
@@ -244,19 +265,46 @@ module.exports = {
         server.status = 'Installing Wordpress';
         server.save();
 
+        var username,password;
+        if (server.cpanel == true) {
+            username = server.domainUser;
+            password = server.domainPassword;
+        } else {
+            username = server.root;
+            password = server.password;
+        }
+
+        console.log(username + ' ' + password);
         // ssh connection
         var conn = new Client();
         conn.on('ready', function() {
             console.log('Client :: ready');
 
-            var command = 'echo \'{"cmd":"install","application":"wordpress",' +
-                '"user":"' + server.domainUser + '",'+
-                '"url":"' + server.domain + '",'+
-                '"email":"' + options.wpEmail + '",'+
-                '"login":"' + options.wpUser + '",'+
-                '"sitetitle":"' + options.wpTitle + '",'+
-                '"sitetagline":"' + options.wpDescription + '",'+
-                '"passwd":"' + options.wpPassword + '"}\' | /usr/local/installatron/installatron';
+            var command;
+
+            if (server.cpanel) {
+                command = 'cd ~/public_html && ' +
+                    'wp core download && ' +
+                    'wp core config --dbname="' + options.dbName +
+                    '" --dbuser="' + options.dbUser +
+                    '" --dbpass="' + options.dbPassword +
+                    '" && ' +
+                'wp core install --url="'+ server.domain +
+                '" --title="'+ options.wpTitle +
+                '" --admin_user="'+ options.wpUser +
+                '" --admin_password="'+ options.wpPassword +
+                '" --admin_email="'+ options.wpEmail +
+                '"';
+            } else {
+                command = 'echo \'{"cmd":"install","application":"wordpress",' +
+                    '"user":"' + server.domainUser + '",'+
+                    '"url":"' + server.domain + '",'+
+                    '"email":"' + options.wpEmail + '",'+
+                    '"login":"' + options.wpUser + '",'+
+                    '"sitetitle":"' + options.wpTitle + '",'+
+                    '"sitetagline":"' + options.wpDescription + '",'+
+                    '"passwd":"' + options.wpPassword + '"}\' | /usr/local/installatron/installatron';
+            }
 
             conn.exec(command, function(err, stream){
 
@@ -299,8 +347,8 @@ module.exports = {
         }).connect({
             host: server.ip,
             port: 22,
-            username: server.root,
-            password: server.password,
+            username: username,
+            password: password,
             readyTimeout: 999999
         });
     }
