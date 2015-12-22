@@ -9,7 +9,7 @@ iptables -A INPUT -p tcp -m tcp --dport 10000 -j ACCEPT
 /etc/init.d/iptables save
 /etc/init.d/iptables restart
 
-yum -y install perl perl-Net-SSLeay openssl perl-IO-Tty httpd mod_.* php php-mysql php-cli.x86_64 php-common.x86_64 php-gd.x86_64 php-curl.x86_64 mysql mysql-server mysql-devel bind
+yum -y install perl perl-Net-SSLeay openssl perl-IO-Tty httpd mod_.* php php-mysql php-cli.x86_64 php-common.x86_64 php-gd.x86_64 php-curl.x86_64 mysql mysql-server mysql-devel bind wget nano
 
 # installing webmin
 wget http://prdownloads.sourceforge.net/webadmin/webmin-1.770-1.noarch.rpm

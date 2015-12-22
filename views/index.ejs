@@ -19,14 +19,15 @@
       <div class="type">
 
         <ul class="nav nav-tabs" role="tablist">
-          <li class="active"><a href="#create-server" aria-controls="profile" role="tab" data-toggle="tab">Create server on Vultr.com</a></li>
+          <li class="active"><a href="#create-server-vultr" aria-controls="profile" role="tab" data-toggle="tab">Create server on Vultr.com</a></li>
+          <li><a href="#create-server-do" aria-controls="profile" role="tab" data-toggle="tab">Create server on DigitalOcean.com</a></li>
           <li><a href="#server-exists" aria-controls="home" role="tab" data-toggle="tab">Already have a server</a></li>
         </ul>
 
         <div class="tab-content">
 
-          <div role="tabpanel" class="tab-pane active" id="create-server">
-            <form id="createServer" action="/server/create" method="post">
+          <div role="tabpanel" class="tab-pane active" id="create-server-vultr">
+            <form id="createServerVulrt" action="/server/create" method="post">
               <h4>This will create a server with CentOS and preinstalled software.</h4>
 
               <label for="apiKey">API Key</label>
@@ -36,8 +37,59 @@
               <input type="text" hidden name="DCID" value="24">
               <input type="text" hidden name="OSID" value="127">
               <input type="text" hidden name="VPSPLANID" value="29">
+              <input type="text" hidden name="PROVIDER" value="vultr">
               <br>
               <input class="btn btn-primary" type="submit" value="Create">
+            </form>
+          </div>
+
+          <div role="tabpanel" class="tab-pane" id="create-server-do">
+            <form id="createServerDO" action="/server/create" method="post">
+              <h4>This will create a server with CentOS.</h4>
+
+              <label for="apiKey">API Key</label>
+              <input id="apiKey" name="apiKey" type="text" class="form-control" required>
+
+              <!-- Hidden fields -->
+              <input type="text" hidden name="IMAGE" value="centos-6-5-x64">
+              <input type="text" hidden name="REGION" value="fra1">
+              <input type="text" hidden name="SIZE" value="512mb">
+              <input type="text" hidden name="PROVIDER" value="do">
+              <br>
+              <input class="btn btn-primary" type="submit" value="Create">
+            </form>
+
+            <form id="prepareServerDO" action="/server/software" method="post">
+              <h4>This will install software on a server.</h4>
+
+              <label for="server">Select server</label>
+              <% if(servers[0]) { %>
+              <select class="form-control" name="server" id="server">
+
+                <% servers.forEach(function(server, index, array){
+                if(server.do_id) {
+                %>
+                <option value="<%= server.id %>"><%= server.ip %></option>
+
+                <%
+                }
+
+                }); %>
+
+              </select>
+              <% } else { %>
+              <p>There are no ready servers</p>
+
+              <% } %>
+
+              <label for="serverRootName">Server Root user name (default "root")</label>
+              <input id="serverRootName" name="serverRootName" type="text" class="form-control">
+
+              <label for="serverRootPassword">Server Root user password</label>
+              <input id="serverRootPassword" name="serverRootPassword" type="text" class="form-control" required>
+
+              <br>
+              <input class="btn btn-primary" type="submit" value="Install">
             </form>
           </div>
 

@@ -7,14 +7,99 @@ var Server = require('../models/server');
 module.exports = {
 
     /*
-    * createServer() - creating server o vulrt.com
+    * createServerOnVultr() - creating server o vulrt.com
+    * createServerOnDO() - creating server o digitalocean.com
     * prepareServer() - installing software via ssh
     * addServer() - save server to DB
     * createDomain() - create virtualmin domain
     * installWordpress() - installing Wordpress using installatron plugin
     * */
 
-    createServer: function(options, callback){
+    createServerOnDO: function(options, callback){
+
+        if(!options.apiKey || !options.REGION || !options.SIZE || !options.IMAGE) {
+            return callback(new Error('Some parameters are missing!'));
+        }
+
+        request({
+            url: 'https://api.digitalocean.com/v2/droplets',
+            json: true,
+            body: {
+                "name": "example",
+                "region": options.REGION,
+                "size": options.SIZE,
+                "image": options.IMAGE,
+                "ssh_keys": null,
+                "backups": false,
+                "ipv6": true,
+                "user_data": null,
+                "private_networking": null
+            },
+            headers: {
+                'Authorization': 'Bearer ' + options.apiKey,
+                'Content-Type': 'application/json'
+            },
+            method: 'POST'
+        }, function(err, response, body) {
+
+            // check if req is done
+            if (err && response.statusCode >= 300) {
+                console.log(response.statusCode);
+                console.log(err);
+                console.log(body);
+                return callback(err);
+            }
+
+            // create server db record
+            var server = Server();
+            // get server id
+            var serverId = body.droplet.id;
+            console.log(serverId);
+            server.do_id = serverId;
+            server.save();
+
+            // check when server is ready for ssh connection
+            var timer = setInterval(function () {
+
+                // get server info
+                request({
+                    url: 'https://api.digitalocean.com/v2/droplets/' + serverId,
+                    headers: {
+                        'Authorization': 'Bearer ' + options.apiKey,
+                        'Content-Type': 'application/json'
+                    },
+                    method: 'GET'
+                }, function (err, response, body) {
+
+                    // check if req is done
+                    if (err && response.statusCode >= 300) {
+                        console.log(err);
+                        return callback(err);
+                    }
+
+                    var obj = JSON.parse(body).droplet;
+
+                    server.status = 'Creating';
+                    server.save();
+                    console.log(obj.networks.v4[0].ip_address);
+                    // check if server ready
+                    if (obj.locked === false && obj.status === 'active' && obj.networks.v4[0].ip_address) {
+
+                        server.ip = obj.networks.v4[0].ip_address;
+                        //server.password = obj.default_password;
+                        server.status = 'Created';
+                        server.save();
+
+                        // kill timer
+                        clearInterval(timer);
+                        return callback(null, server);
+                    }
+                });
+            }, 5000);
+        });
+    },
+
+    createServerOnVultr: function(options, callback){
 
         if(!options.apiKey || !options.DCID || !options.OSID || !options.VPSPLANID) {
             return callback(new Error('Some parameters are missing!'));
@@ -119,6 +204,10 @@ module.exports = {
 
             // transfer sh script to server root folder
             conn.sftp(function(err, sftp) {
+                if(err || !sftp){
+                    return callback(err);
+                }
+
                 // creating file stream
                 var readStream = fs.createReadStream( "./sh/baseserv.sh" );
                 var writeStream = sftp.createWriteStream( "/root/baseserv.sh" );
@@ -137,9 +226,14 @@ module.exports = {
                         stream.on('close', function(code, signal) {
 
                             console.log('Stream :: close :: code: ' + code + ', signal: ' + signal);
+                            if (code > 0) {
+                                server.status = 'Error in software installation';
+                                server.isSoftwareInstalled = false;
+                            } else {
+                                server.status = 'Software installed';
+                                server.isSoftwareInstalled = true;
+                            }
 
-                            server.status = 'Software installed';
-                            server.isSoftwareInstalled = true;
                             server.save();
 
                             stream.end();
@@ -313,12 +407,16 @@ module.exports = {
                 }
 
                 stream.on('close', function(code, signal){
+                    if (code > 0) {
+                        server.status = 'Error in Wordpress installation';
+                    } else {
+                        server.status = 'Site ready!';
+                        server.wpUser = options.wpUser;
+                        server.wpPassword = options.wpPassword;
+                        server.wpEmail = options.wpEmail;
+                        server.isWordpressInstalled = true;
+                    }
 
-                    server.status = 'Site ready!';
-                    server.wpUser = options.wpUser;
-                    server.wpPassword = options.wpPassword;
-                    server.wpEmail = options.wpEmail;
-                    server.isWordpressInstalled = true;
                     server.save();
 
                     stream.end();

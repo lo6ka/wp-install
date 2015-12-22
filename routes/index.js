@@ -3,6 +3,11 @@ var wp_install = require('../wp_install');
 var router = express.Router();
 var Server = require('../models/server');
 
+/* Backbone.js front-end test */
+router.get('/backbone', function(req, res, next) {
+    res.render('backbone');
+});
+
 /* GET home page. */
 router.get('/', function(req, res, next) {
   Server.find({}, function(err, servers){
@@ -24,41 +29,89 @@ router.get('/server/:serverid', function(req, res, next) {
   });
 });
 
+router.get('/server', function(req, res, next){
+
+  Server.find({}, function(err, servers){
+    if(err) {
+      return res.json(err);
+    }
+
+    res.json(servers);
+  });
+});
+
 /* Create server on Vulrt.com */
 router.post('/server/create', function(req, res, next){
 
-  wp_install.createServer(req.body, function(err, server){
-    if(err && !server) {
-      console.log(err);
-    }
+  if(req.body.PROVIDER === 'do'){
 
-    console.log('Server created!');
+    wp_install.createServerOnDO(req.body, function(err, server){
+      if(err && !server) {
+        console.log(err);
+      }
+
+      console.log('Server created!');
+
+    });
+
+  } else if(req.body.PROVIDER === 'vultr') {
+
+    wp_install.createServerOnVultr(req.body, function(err, server){
+      if(err && !server) {
+        console.log(err);
+      }
+
+      console.log('Server created!');
+
+      wp_install.prepareServer(server, function(err, server){
+        if(err && !server) {
+
+          // to avoid an error
+          setTimeout(function(){
+
+            wp_install.prepareServer(server, function(err, server){
+              if(err && !server) {
+                console.log(err);
+              }
+
+              console.log('Software installed!');
+
+            });
+
+          }, 5000);
+
+        }
+
+        console.log('Software installed!');
+
+      });
+    });
+
+  }
+
+  return res.redirect('/');
+});
+
+router.post('/server/software', function(req, res, next){
+
+  Server.findById(req.body.server, function(err, server){
+
+    server.root = req.body.serverRootName || server.root;
+    server.password = req.body.serverRootPassword;
+    server.save();
 
     wp_install.prepareServer(server, function(err, server){
       if(err && !server) {
-
-        // to avoid an error
-        setTimeout(function(){
-
-          wp_install.prepareServer(server, function(err, server){
-            if(err && !server) {
-              console.log(err);
-            }
-
-            console.log('Software installed!');
-
-          });
-
-        }, 5000);
-
+        console.log(err);
       }
 
       console.log('Software installed!');
 
     });
+
+    return res.redirect('/');
   });
 
-  return res.redirect('/');
 });
 
 /* Add info about already created server and install software */

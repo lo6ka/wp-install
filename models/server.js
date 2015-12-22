@@ -2,6 +2,7 @@ var mongoose = require('mongoose');
 
 var Server = mongoose.Schema({
     vulrt_id: String,
+    do_id: String,
     ip: String,
     user: String,
 
@@ -15,6 +16,7 @@ var Server = mongoose.Schema({
         type: Boolean,
         default: false
     },
+
 
     dbName: {
         type: String
