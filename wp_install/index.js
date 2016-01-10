@@ -4,17 +4,21 @@ var fs = require('fs');
 var Client = ssh2.Client;
 var Server = require('../models/server');
 
+/**
+ * @module WpInstall
+* */
+
 module.exports = {
 
-    /*
-    * createServerOnVultr() - creating server o vulrt.com
-    * createServerOnDO() - creating server o digitalocean.com
-    * prepareServer() - installing software via ssh
-    * addServer() - save server to DB
-    * createDomain() - create virtualmin domain
-    * installWordpress() - installing Wordpress using installatron plugin
+    /**
+    * Creating server on digitalocean.com
+    * @param {object} options - Parameters for creating a server
+    * @param {object} options.apiKey - Digitalocean api key
+    * @param {object} options.REGION - Digitalocean region
+    * @param {object} options.SIZE - Digitalocean plan
+    * @param {object} options.IMAGE - Operating system
+    * @param {function} callback - Callback with err and server objects
     * */
-
     createServerOnDO: function(options, callback){
 
         if(!options.apiKey || !options.REGION || !options.SIZE || !options.IMAGE) {
@@ -86,7 +90,6 @@ module.exports = {
                     if (obj.locked === false && obj.status === 'active' && obj.networks.v4[0].ip_address) {
 
                         server.ip = obj.networks.v4[0].ip_address;
-                        //server.password = obj.default_password;
                         server.status = 'Created';
                         server.save();
 
@@ -99,6 +102,16 @@ module.exports = {
         });
     },
 
+
+    /**
+     * Creating server on vultr.com
+     * @param {object} options - Parameters for creating a server
+     * @param {object} options.apiKey - Vultr api key
+     * @param {object} options.DCID - Vultr region ID
+     * @param {object} options.OSID - Operating system ID
+     * @param {object} options.VPSPLANID - Vultr plan ID
+     * @param {function} callback - Callback with err and server objects
+     * */
     createServerOnVultr: function(options, callback){
 
         if(!options.apiKey || !options.DCID || !options.OSID || !options.VPSPLANID) {
@@ -116,7 +129,7 @@ module.exports = {
         }, function(err, response, body) {
 
             // check if req is done
-            if (!err && response.statusCode !== 200) {
+            if (err && response.statusCode >= 300) {
                 console.log(err);
                 return callback(err);
             }
@@ -139,7 +152,7 @@ module.exports = {
                 }, function (err, response, body) {
 
                     // check if req is done
-                    if (!err && response.statusCode !== 200) {
+                    if (err && response.statusCode >= 300) {
                         console.log(err);
                         return callback(err);
                     }
@@ -166,6 +179,13 @@ module.exports = {
         });
     },
 
+    /**
+     * Add already prepared server to db
+     * @param {object} options - Parameters for adding a server
+     * @param {object} options.serverRootPassword - Server root user password
+     * @param {object} options.serverIP - Server IP address
+     * @param {function} callback - Callback with err and server objects
+     * */
     addServer: function(options, callback){
 
         if(!options.serverRootPassword || !options.serverIP){
@@ -190,6 +210,11 @@ module.exports = {
 
     },
 
+    /**
+     * Preparing server (installing software)
+     * @param {object} server - Server object from db
+     * @param {function} callback - Callback with err and server objects
+     * */
     prepareServer: function(server, callback){
         if(!server){
             return callback(new Error('No server object! Cannot install software!'));
@@ -271,6 +296,15 @@ module.exports = {
         });
     },
 
+    /**
+     * Creating domain on a server
+     * @param {object} options - Options for domain creation
+     * @param {object} options.domain - Domain name
+     * @param {object} options.domainUser - Domain user name
+     * @param {object} options.domainPassword - Domain user password
+     * @param {object} server - Server object from db
+     * @param {function} callback - Callback with err and server objects
+     * */
     createDomain: function(options, server, callback){
         if(!server || !options){
             return callback(new Error('No server object! Cannot create domain!'));
@@ -351,6 +385,20 @@ module.exports = {
         });
     },
 
+    /**
+     * Installing Wordpress
+     * @param {object} options - Options for Wordpress installation
+     * @param {object} options.dbName - Database name
+     * @param {object} options.dbUser - Database user name
+     * @param {object} options.dbPassword - Database user password
+     * @param {object} options.wpTitle - Website title
+     * @param {object} options.wpDescription - Website description
+     * @param {object} options.wpUser - Website administrator user name
+     * @param {object} options.wpPassword - Website administrator user password
+     * @param {object} options.wpEmail - Website administrator email
+     * @param {object} server - Server object from db
+     * @param {function} callback - Callback with err and server objects
+     * */
     installWordpress: function(options, server, callback){
         if(!server || !options){
             return callback(new Error('No server object! Cannot create domain!'));
