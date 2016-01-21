@@ -19,15 +19,73 @@
       <div class="type">
 
         <ul class="nav nav-tabs" role="tablist">
-          <li class="active"><a href="#create-server-vultr" aria-controls="profile" role="tab" data-toggle="tab">Create server on Vultr.com</a></li>
+          <li class="active"><a href="#ftp" aria-controls="profile" role="tab" data-toggle="tab">FTP</a></li>
+          <li><a href="#create-server-vultr" aria-controls="profile" role="tab" data-toggle="tab">Create server on Vultr.com</a></li>
           <li><a href="#create-server-do" aria-controls="profile" role="tab" data-toggle="tab">Create server on DigitalOcean.com</a></li>
           <li><a href="#server-exists" aria-controls="home" role="tab" data-toggle="tab">Already have a server</a></li>
         </ul>
 
         <div class="tab-content">
 
-          <div role="tabpanel" class="tab-pane active" id="create-server-vultr">
-            <form id="createServerVulrt" action="/server/create" method="post">
+          <div role="tabpanel" class="tab-pane active" id="ftp">
+            <form id="ftp" action="/api/wordpress/install/shared" method="post">
+              <h4>This will install Wordpress on your shared-hosting.</h4>
+
+              <label for="domain">Domain to your wordpress site</label>
+              <input id="domain" name="domain" type="text" class="form-control" value="http://603591.pisarivs.web.hosting-test.net/ftp">
+
+              <h3>FTP config</h3>
+
+              <label for="ftpPath">Path</label>
+              <input id="ftpPath" name="ftpPath" type="text" class="form-control" value="/pisarivskiy.com/dev/ftp">
+
+              <label for="ftpUser">ftp User</label>
+              <input id="ftpUser" name="ftpUser" type="text" class="form-control" value="pisarivs_ftp">
+
+              <label for="ftpPassword">ftp Password</label>
+              <input id="ftpPassword" name="ftpPassword" type="text" class="form-control" value="DYbhNFEV">
+
+              <label for="ftpHost">ftp Host</label>
+              <input id="ftpHost" name="ftpHost" type="text" class="form-control" value="pisarivs.ftp.ukraine.com.ua">
+
+              <h3>Wordpress config</h3>
+
+              <label for="wpTitle">wp Title</label>
+              <input id="wpTitle" name="wpTitle" type="text" class="form-control" value="Site #1">
+
+              <label for="wpDescription">wp Description</label>
+              <input id="wpDescription" name="wpDescription" type="text" class="form-control" value="The best description">
+
+              <label for="wpUser">wp User</label>
+              <input id="wpUser" name="wpUser" type="text" class="form-control" value="admin123">
+
+              <label for="wpPassword">wp Password</label>
+              <input id="wpPassword" name="wpPassword" type="text" class="form-control" value="123456">
+
+              <label for="wpEmail">wp User</label>
+              <input id="wpEmail" name="wpEmail" type="text" class="form-control" value="pisarivskii@gmail.com">
+
+              <h3>Database config</h3>
+
+              <label for="dbName">Database name</label>
+              <input id="dbName" name="dbName" type="text" class="form-control" value="pisarivs_db">
+
+              <label for="dbUser">Database user</label>
+              <input id="dbUser" name="dbUser" type="text" class="form-control" value="pisarivs_db">
+
+              <label for="dbPassword">Database password</label>
+              <input id="dbPassword" name="dbPassword" type="password" class="form-control" value="L4R7THjp">
+
+              <label for="dbHost">Database host</label>
+              <input id="dbHost" name="dbHost" type="text" class="form-control" value="pisarivs.mysql.ukraine.com.ua">
+
+              <br>
+              <input class="btn btn-primary" type="submit" value="Install">
+            </form>
+          </div>
+
+          <div role="tabpanel" class="tab-pane" id="create-server-vultr">
+            <form id="createServerVulrt" action="/api/server/create/vultr" method="post">
               <h4>This will create a server with CentOS and preinstalled software.</h4>
 
               <label for="apiKey">API Key</label>
@@ -37,24 +95,22 @@
               <input type="text" hidden name="DCID" value="24">
               <input type="text" hidden name="OSID" value="127">
               <input type="text" hidden name="VPSPLANID" value="29">
-              <input type="text" hidden name="PROVIDER" value="vultr">
               <br>
               <input class="btn btn-primary" type="submit" value="Create">
             </form>
           </div>
 
           <div role="tabpanel" class="tab-pane" id="create-server-do">
-            <form id="createServerDO" action="/server/create" method="post">
+            <form id="createServerDO" action="/api/server/create/do" method="post">
               <h4>This will create a server with CentOS.</h4>
 
               <label for="apiKey">API Key</label>
               <input id="apiKey" name="apiKey" type="text" class="form-control" required>
 
-              <!-- Hidden fields -->
+              <!-- Hidden fields 2238238c58ed95183cb27aeb9eab4fb78635e1976741e74568450a150968c8a1 -->
               <input type="text" hidden name="IMAGE" value="centos-6-5-x64">
               <input type="text" hidden name="REGION" value="fra1">
               <input type="text" hidden name="SIZE" value="512mb">
-              <input type="text" hidden name="PROVIDER" value="do">
               <br>
               <input class="btn btn-primary" type="submit" value="Create">
             </form>
@@ -94,7 +150,7 @@
           </div>
 
           <div role="tabpanel" class="tab-pane" id="server-exists">
-            <form id="addServer" action="/server/add" method="post">
+            <form id="addServer" action="/api/server/add" method="post">
               <h4>You need to provide some details about your server.</h4>
               <h6><i>WP-CLI need to be installed</i></h6>
 
@@ -120,7 +176,7 @@
 
       </div>
 
-      <form id="createVirtualminDomain" action="/server/createDomain" method="post">
+      <form id="createVirtualminDomain" action="/api/domain/create" method="post">
         <h3>Create domain on a server</h3>
 
         <label for="server">Select server</label>
@@ -156,7 +212,7 @@
         <input class="btn btn-primary" type="submit" value="Create">
       </form>
 
-      <form id="installWordpress" action="/server/installWordpress" method="post">
+      <form id="installWordpress" action="/api/wordpress/install/server" method="post">
         <h3>Install Wordpress</h3>
 
         <label for="server">Select server</label>
@@ -230,7 +286,7 @@
     </div>
 
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
-    <script src="javascript/main.js"></script>
+    <!-- <script src="javascript/main.js"></script> -->
     <!-- Latest compiled and minified JavaScript -->
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js" integrity="sha512-K1qjQ+NcF2TYO/eI3M6v8EiNYZfA95pQumfvcVrTHtwQVDG+aHRqLi/ETn2uB+1JqwYqVG3LIvdm9lj6imS/pQ==" crossorigin="anonymous"></script>
   </body>

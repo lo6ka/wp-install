@@ -1,10 +1,14 @@
-var mongoose = require('mongoose');
+'use strict';
 
-var Server = mongoose.Schema({
+let mongoose = require('mongoose');
+
+let Server = mongoose.Schema({
     vulrt_id: String,
     do_id: String,
     ip: String,
-    user: String,
+    user: Number,
+    id: Number,
+    ssh: String,
 
     root: {
         type: String,
@@ -16,7 +20,6 @@ var Server = mongoose.Schema({
         type: Boolean,
         default: false
     },
-
 
     dbName: {
         type: String

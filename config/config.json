@@ -1,0 +1,16 @@
+{
+  "port": 3000,
+  "database": {
+    "user": "admin",
+    "password": "password",
+    "host": "localhost",
+    "port": 27017,
+    "dbname": "wpInstall"
+  },
+  "views": true,
+  "logger": {
+    "maxSize": 20971520,
+    "consoleLevel": "info",
+    "fileLevel": "error"
+  }
+}

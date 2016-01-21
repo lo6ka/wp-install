@@ -1,60 +1,77 @@
-var express = require('express');
-var path = require('path');
-var favicon = require('serve-favicon');
-var logger = require('morgan');
-var cookieParser = require('cookie-parser');
-var bodyParser = require('body-parser');
-var mongoose = require('mongoose');
-mongoose.connect('mongodb://localhost/wpinstall');
+'use strict';
 
-var routes = require('./routes/index');
+let path = require('path');
+let cluster = require('cluster');
+let logger = require('./logger')();
+let config = require('./config');
 
-var app = express();
+if(cluster.isMaster) {
 
-// view engine setup
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'ejs');
+    var cpuCount = require('os').cpus().length;
 
-// uncomment after placing your favicon in /public
-//app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
-app.use(logger('dev'));
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(cookieParser());
-app.use(express.static(path.join(__dirname, 'public')));
+    for (var i = 0; i < cpuCount; i += 1) {
+        cluster.fork();
+    }
 
-app.use('/', routes);
+    cluster.on('exit', function (worker) {
 
-// catch 404 and forward to error handler
-app.use(function(req, res, next) {
-  var err = new Error('Not Found');
-  err.status = 404;
-  next(err);
-});
+        logger.info(`Worker ${worker.id} died`);
+        // TODO Don't forget to uncomment this!
+        //cluster.fork();
 
-// error handlers
-
-// development error handler
-// will print stacktrace
-if (app.get('env') === 'development') {
-  app.use(function(err, req, res, next) {
-    res.status(err.status || 500);
-    res.render('error', {
-      message: err.message,
-      error: err
     });
-  });
+
+    logger.info(`Application is listening on port ${config.get('port')}`);
+
+} else {
+
+    /**
+    * Requires for app
+    * */
+    let express = require('express');
+    let cookieParser = require('cookie-parser');
+    let bodyParser = require('body-parser');
+    let app = express();
+    let mongoose = require('mongoose');
+    let routes = require('./routes');
+    let db = require('./db');
+    db.connect();
+
+    if(config.get('views')){
+        app.set('views', path.join(__dirname, 'views'));
+        app.set('view engine', 'ejs');
+    }
+
+    app.use(bodyParser.json());
+    app.use(bodyParser.urlencoded({ extended: false }));
+    app.use(cookieParser());
+    if(config.get('views')) {
+        app.use(express.static(path.join(__dirname, 'public')));
+        app.use('/', routes.view);
+    }
+
+    app.use('/api', routes.api);
+
+    app.listen(config.get('port'));
+
+    /**
+     * Handle 404 error
+     * */
+    app.use( (req, res, next) => {
+        var err = new Error('Not Found');
+        err.status = 404;
+        next(err);
+    });
+
+    app.use((err, req, res, next) => {
+        logger.error(`${err.status || 500} - ${err.stack} ${req.originalUrl}`);
+        res.status(err.status || 500);
+        res.json({
+            error: true,
+            message: `${err.message} ${req.originalUrl}`,
+            status: err.status || 500
+        });
+    });
+
+    //logger.info(`Worker ${cluster.worker.id} running!`);
 }
-
-// production error handler
-// no stacktraces leaked to user
-app.use(function(err, req, res, next) {
-  res.status(err.status || 500);
-  res.render('error', {
-    message: err.message,
-    error: {}
-  });
-});
-
-
-module.exports = app;
